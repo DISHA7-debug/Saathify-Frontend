@@ -1,0 +1,10 @@
+{
+	"appId": "com.saathify.app",
+	"appName": "SaathiFy",
+	"webDir": "www",
+	"bundledWebRuntime": false,
+	"server": {
+		"url": "https://accessible-comm.emergent.host",
+		"cleartext": false
+	}
+}
