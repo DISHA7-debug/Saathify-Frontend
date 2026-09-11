@@ -1,19 +1,94 @@
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, BookOpen, Headphones, Type, Play, Pause, SkipBack, SkipForward, ChevronRight, Upload } from "lucide-react";
+import { motion } from "framer-motion";
+import { X, BookOpen, Headphones, Type, Play, Pause, SkipBack, SkipForward, ChevronRight, Upload, AlertCircle, Cpu, CheckCircle } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 
 const BRAILLE_MAP = {
   a:'⠁',b:'⠃',c:'⠉',d:'⠙',e:'⠑',f:'⠋',g:'⠛',h:'⠓',i:'⠊',j:'⠚',
   k:'⠅',l:'⠇',m:'⠍',n:'⠝',o:'⠕',p:'⠏',q:'⠟',r:'⠗',s:'⠎',t:'⠞',
-  u:'⠥',v:'⠧',w:'⠺',x:'⠭',y:'⠽',z:'⠵',' ':'⠀',',':'⠂','.':'⠲','!':'⠖','?':'⠦'
+  u:'⠥',v:'⠧',w:'⠺',x:'⠭',y:'⠽',z:'⠵',' ':'⠀',',':'⠂','.':'⠲','!':'⠖','?':'⠦',
+  '0':'⠼⠚','1':'⠼⠁','2':'⠼⠃','3':'⠼⠉','4':'⠼⠙','5':'⠼⠑','6':'⠼⠋','7':'⠼⠛','8':'⠼⠓','9':'⠼⠊'
 };
 
 function toBraille(text) {
+  if (!text) return "";
   return text.toLowerCase().split('').map(c => BRAILLE_MAP[c] || c).join('');
 }
 
-const MOCK_DOC = {
+// Isolated Sarvam AI TTS (Bulbul v3) Integration Module (server-side proxy, zero key leak)
+export async function speakText({ text, rate = 1, onProgress, onEnd, onError }) {
+  try {
+    const res = await fetch("/api/sarvam/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, pace: rate, speaker: "shreya" }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Couldn't generate audio right now — try again");
+    }
+
+    const data = await res.json();
+    const audiosList = (data.audios && data.audios.length > 0) ? data.audios : (data.audio ? [data.audio] : []);
+
+    if (data.error || audiosList.length === 0) {
+      throw new Error(data.error || "Couldn't generate audio right now — try again");
+    }
+
+    let currentIndex = 0;
+    let currentAudio = null;
+
+    const playChunk = (index) => {
+      if (index >= audiosList.length) {
+        if (onEnd) onEnd();
+        return;
+      }
+
+      currentAudio = new Audio(audiosList[index]);
+      currentAudio.playbackRate = rate;
+
+      currentAudio.ontimeupdate = () => {
+        if (currentAudio.duration && onProgress) {
+          const overallProgress = ((index + (currentAudio.currentTime / currentAudio.duration)) / audiosList.length) * 100;
+          onProgress(Math.min(overallProgress, 100));
+        }
+      };
+
+      currentAudio.onended = () => {
+        playChunk(index + 1);
+      };
+
+      currentAudio.onerror = (err) => {
+        if (onError) onError(new Error("Couldn't generate audio right now — try again"));
+      };
+
+      currentAudio.play().catch(e => {
+        if (onError) onError(e);
+      });
+    };
+
+    playChunk(0);
+
+    return {
+      pause: () => currentAudio && currentAudio.pause(),
+      play: () => currentAudio && currentAudio.play(),
+      stop: () => {
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
+      },
+      set playbackRate(r) {
+        if (currentAudio) currentAudio.playbackRate = r;
+      }
+    };
+  } catch (err) {
+    if (onError) onError(err);
+    return null;
+  }
+}
+
+const DEFAULT_DOC = {
   title: "Understanding Indian Sign Language",
   paragraphs: [
     "Indian Sign Language (ISL) is the primary sign language used by the deaf community in India, with an estimated 5 million users across the country.",
@@ -23,14 +98,17 @@ const MOCK_DOC = {
   ]
 };
 
+
 export default function DocumentReaderWorkspace({ onClose }) {
+  const [doc, setDoc] = useState(DEFAULT_DOC);
+  const [fileError, setFileError] = useState("");
   const [activeTab, setActiveTab] = useState("read");
   const [fontSize, setFontSize] = useState("md");
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [progress, setProgress] = useState(0);
   const [activePara, setActivePara] = useState(0);
-  const timerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const handleEsc = (e) => e.key === "Escape" && onClose();
@@ -38,21 +116,99 @@ export default function DocumentReaderWorkspace({ onClose }) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
+  // Clean up SpeechSynthesis on unmount or doc change
   useEffect(() => {
-    if (playing) {
-      timerRef.current = setInterval(() => {
-        setProgress((p) => {
-          const next = p + (speed * 0.5);
-          if (next >= 100) { setPlaying(false); setActivePara(0); return 100; }
-          setActivePara(Math.floor((next / 100) * MOCK_DOC.paragraphs.length));
-          return next;
-        });
-      }, 200);
-    } else {
-      clearInterval(timerRef.current);
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const audioRef = useRef(null);
+
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    setFileError("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/parse-document", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || data.error || "We couldn't read that file — try a .txt, .pdf, or .docx");
+      }
+
+      const parsed = await res.json();
+      if (!parsed.text || !parsed.paragraphs || parsed.paragraphs.length === 0) {
+        throw new Error("We couldn't read that file — try a .txt, .pdf, or .docx");
+      }
+
+      setDoc({
+        title: parsed.title || file.name,
+        paragraphs: parsed.paragraphs,
+        text: parsed.text
+      });
+      setProgress(0);
+      setActivePara(0);
+      setPlaying(false);
+      if (audioRef.current && audioRef.current.pause) audioRef.current.pause();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    } catch (err) {
+      setFileError(err.message || "We couldn't read that file — try a .txt, .pdf, or .docx");
     }
-    return () => clearInterval(timerRef.current);
-  }, [playing, speed]);
+  };
+
+  const handlePlayPause = async () => {
+    setFileError("");
+    if (playing) {
+      if (audioRef.current && audioRef.current.pause) {
+        audioRef.current.pause();
+      } else if ('speechSynthesis' in window) {
+        window.speechSynthesis.pause();
+      }
+      setPlaying(false);
+    } else {
+      if (audioRef.current && audioRef.current.play && audioRef.current.paused) {
+        audioRef.current.play();
+        setPlaying(true);
+      } else {
+        const fullText = doc.paragraphs.join(" ");
+        setPlaying(true);
+        const player = await speakText({
+          text: fullText,
+          rate: speed,
+          onProgress: (p) => {
+            setProgress(p);
+            setActivePara(Math.min(Math.floor((p / 100) * doc.paragraphs.length), doc.paragraphs.length - 1));
+          },
+          onEnd: () => {
+            setPlaying(false);
+            setProgress(100);
+          },
+          onError: (err) => {
+            setPlaying(false);
+            setFileError(err.message || "Couldn't generate audio right now — try again");
+          },
+        });
+        if (player) {
+          audioRef.current = player;
+        }
+      }
+    }
+  };
+
+  const handleSpeedChange = (newSpeed) => {
+    setSpeed(newSpeed);
+    if (audioRef.current && audioRef.current.playbackRate) {
+      audioRef.current.playbackRate = newSpeed;
+    }
+  };
 
   const fontSizeClass = { sm: "text-sm", md: "text-base", lg: "text-lg", xl: "text-xl" }[fontSize];
 
@@ -73,12 +229,22 @@ export default function DocumentReaderWorkspace({ onClose }) {
             </div>
             <div>
               <h2 className="font-heading font-bold text-ink">Document Reader</h2>
-              <p className="text-xs text-ink-muted">{MOCK_DOC.title}</p>
+              <p className="text-xs text-ink-muted">{doc.title}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button data-testid="doc-upload-btn"
-              className="flex items-center gap-1.5 px-3 py-2 bg-[#FAF6F0] text-ink-secondary text-sm font-medium rounded-xl border border-sand hover:bg-parchment">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+              accept=".txt,.pdf,.doc,.docx"
+              className="hidden"
+            />
+            <button
+              data-testid="doc-upload-btn"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-terracotta text-white text-sm font-medium rounded-xl hover:bg-terracotta-hover transition-colors shadow-sm"
+            >
               <Upload className="w-4 h-4" /> Open Document
             </button>
             <button onClick={onClose} data-testid="doc-workspace-close" className="p-2 rounded-xl hover:bg-[#FAF6F0] text-ink-muted hover:text-ink" aria-label="Close">
@@ -86,6 +252,17 @@ export default function DocumentReaderWorkspace({ onClose }) {
             </button>
           </div>
         </div>
+
+        {/* File Error Alert */}
+        {fileError && (
+          <div className="bg-red-50 border-b border-red-200 px-6 py-3 flex items-center justify-between text-red-700 text-sm">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span>{fileError}</span>
+            </div>
+            <button onClick={() => setFileError("")} className="text-xs font-semibold underline hover:no-underline">Dismiss</button>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-hidden flex flex-col">
@@ -120,9 +297,9 @@ export default function DocumentReaderWorkspace({ onClose }) {
                   ))}
                 </div>
                 <h1 className={`font-heading font-bold text-ink mb-6 ${fontSize === "xl" ? "text-2xl" : fontSize === "lg" ? "text-xl" : "text-lg"}`}>
-                  {MOCK_DOC.title}
+                  {doc.title}
                 </h1>
-                {MOCK_DOC.paragraphs.map((p, i) => (
+                {doc.paragraphs.map((p, i) => (
                   <p key={i} className={`${fontSizeClass} text-ink-secondary leading-relaxed mb-5`}>{p}</p>
                 ))}
               </div>
@@ -135,13 +312,13 @@ export default function DocumentReaderWorkspace({ onClose }) {
                 <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-sand">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <p className="font-semibold text-ink text-sm">{MOCK_DOC.title}</p>
-                      <p className="text-xs text-ink-muted">4 paragraphs · ~2 min</p>
+                      <p className="font-semibold text-ink text-sm">{doc.title}</p>
+                      <p className="text-xs text-ink-muted">{doc.paragraphs.length} paragraphs · Speech Synthesis Active</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-ink-muted">Speed:</span>
                       {[0.5, 1, 1.5, 2].map((s) => (
-                        <button key={s} onClick={() => setSpeed(s)} data-testid={`listen-speed-${s}`}
+                        <button key={s} onClick={() => handleSpeedChange(s)} data-testid={`listen-speed-${s}`}
                           className={`px-2 py-1 rounded-lg text-xs font-semibold ${speed === s ? "bg-sage text-white" : "bg-white text-ink-muted border border-sand"}`}>
                           {s}×
                         </button>
@@ -154,31 +331,28 @@ export default function DocumentReaderWorkspace({ onClose }) {
                     <div className="h-2 bg-sand rounded-full overflow-hidden cursor-pointer" onClick={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const p = ((e.clientX - rect.left) / rect.width) * 100;
-                      setProgress(p); setActivePara(Math.floor((p / 100) * MOCK_DOC.paragraphs.length));
+                      setProgress(p); setActivePara(Math.min(Math.floor((p / 100) * doc.paragraphs.length), doc.paragraphs.length - 1));
                     }}>
                       <div className="h-full bg-sage rounded-full transition-all" style={{ width: `${progress}%` }} />
-                    </div>
-                    <div className="flex justify-between mt-1 text-xs text-ink-muted">
-                      <span>{Math.floor(progress / 100 * 120)}s</span><span>~2:00</span>
                     </div>
                   </div>
 
                   {/* Controls */}
                   <div className="flex items-center justify-center gap-4">
-                    <button onClick={() => { setProgress(0); setActivePara(0); }} data-testid="listen-skip-back"
+                    <button onClick={() => { setProgress(0); setActivePara(0); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); setPlaying(false); }} data-testid="listen-skip-back"
                       className="p-2 text-ink-muted hover:text-ink"><SkipBack className="w-5 h-5" /></button>
-                    <button onClick={() => setPlaying(!playing)} data-testid="listen-play-btn"
+                    <button onClick={handlePlayPause} data-testid="listen-play-btn"
                       className="w-12 h-12 bg-sage rounded-full flex items-center justify-center text-white hover:bg-sage-hover transition-colors shadow-soft">
                       {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                     </button>
-                    <button onClick={() => { setProgress(100); setPlaying(false); }} data-testid="listen-skip-fwd"
+                    <button onClick={() => { setProgress(100); setPlaying(false); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }} data-testid="listen-skip-fwd"
                       className="p-2 text-ink-muted hover:text-ink"><SkipForward className="w-5 h-5" /></button>
                   </div>
                 </div>
 
                 {/* Highlighted text */}
                 <div className="space-y-4">
-                  {MOCK_DOC.paragraphs.map((p, i) => (
+                  {doc.paragraphs.map((p, i) => (
                     <div key={i} className={`p-4 rounded-xl border transition-all duration-300 ${
                       i === activePara && playing ? "bg-sage-light border-sage/30" : "bg-[#FAF6F0] border-sand"
                     }`}>
@@ -193,18 +367,18 @@ export default function DocumentReaderWorkspace({ onClose }) {
             </TabsContent>
 
             {/* Braille Tab */}
-            <TabsContent value="braille" className="flex-1 overflow-y-auto p-6 focus:outline-none">
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-butter-light rounded-2xl p-4 border border-butter/30 mb-6">
+            <TabsContent value="braille" className="flex-1 overflow-y-auto p-6 focus:outline-none relative">
+              <div className="max-w-2xl mx-auto space-y-6 pb-20">
+                <div className="bg-butter-light rounded-2xl p-4 border border-butter/30">
                   <p className="text-sm text-[#A0732A]">
-                    <strong>Braille Mode:</strong> Text is rendered in Grade 1 Unicode Braille. Optimized for refreshable Braille display devices.
+                    <strong>Braille Mode:</strong> Text converted to Grade 1 Unicode Braille. Ready for display output.
                   </p>
                 </div>
 
-                <div className="space-y-8">
-                  {MOCK_DOC.paragraphs.map((p, i) => (
+                <div className="space-y-6">
+                  {doc.paragraphs.map((p, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }} className="p-6 bg-[#FAF6F0] rounded-2xl border border-sand"
+                      transition={{ delay: i * 0.08 }} className="p-6 bg-[#FAF6F0] rounded-2xl border border-sand"
                       data-testid={`braille-para-${i}`}
                     >
                       <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">Paragraph {i + 1}</p>
@@ -215,6 +389,26 @@ export default function DocumentReaderWorkspace({ onClose }) {
                     </motion.div>
                   ))}
                 </div>
+              </div>
+
+              {/* Hardware Insert Status Indicator Signal */}
+              <div className="sticky bottom-4 left-0 right-0 flex justify-center z-20 pointer-events-none">
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="pointer-events-auto bg-[#1A1A2E] text-white px-5 py-3 rounded-2xl shadow-lift border border-sand flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-sage/20 flex items-center justify-center text-sage">
+                    <Cpu className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-sage">
+                      <CheckCircle className="w-3.5 h-3.5" /> Braille Output Generated
+                    </div>
+                    <p className="text-xs text-white/80">Ready — insert Braille display device</p>
+                  </div>
+                </motion.div>
               </div>
             </TabsContent>
           </Tabs>

@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, Monitor, Layers, Radio, Check, X } from "lucide-react";
 
 const FEATURES = [
-  { icon: <Layers className="w-5 h-5" />, title: "Overlay on any window", desc: "Dost floats on top of any application — video calls, browsers, documents." },
+  { icon: <Layers className="w-5 h-5" />, title: "Overlay on any window", desc: "Avatar floats on top of any application — video calls, browsers, documents." },
   { icon: <Radio className="w-5 h-5" />, title: "Always-on ISL recognition", desc: "Continuous sign detection runs in the background as you work." },
   { icon: <Monitor className="w-5 h-5" />, title: "Desktop-native performance", desc: "Direct access to system camera for ultra-low latency recognition." },
-  { icon: <Check className="w-5 h-5" />, title: "One-click webpage attach", desc: "Click any webpage or app window to attach Dost — it follows you everywhere." },
+  { icon: <Check className="w-5 h-5" />, title: "One-click webpage attach", desc: "Click any webpage or app window to attach Avatar — it follows you everywhere." },
 ];
 
 export default function DesktopAvatar() {
@@ -33,36 +33,59 @@ export default function DesktopAvatar() {
             <div className="w-full max-w-sm">
               {/* Screen */}
               <div className="bg-[#1A1A2E] rounded-t-2xl pt-3 px-3 pb-1 shadow-lift">
-                <div className="bg-[#2B2D42] rounded-xl overflow-hidden aspect-[4/3] relative">
+                <div className="bg-[#1E1F36] rounded-xl overflow-hidden aspect-[4/3] relative">
                   {/* Browser chrome */}
                   <div className="bg-[#3D405B] px-3 py-2 flex items-center gap-2">
                     {["#F2CC8F","#81B29A","#E07A5F"].map((c) => (
                       <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />
                     ))}
-                    <div className="flex-1 bg-[#2B2D42] rounded-md px-3 py-0.5 text-xs text-white/40 ml-2">saathify.app</div>
+                    <div className="flex-1 bg-[#2B2D42] rounded-md px-3 py-0.5 text-xs text-white/40 ml-2">saathify.app/workspace</div>
                   </div>
-                  {/* Page content */}
-                  <div className="p-4 space-y-2">
-                    <div className="h-3 bg-white/10 rounded w-3/4" />
-                    <div className="h-2 bg-white/6 rounded w-full" />
-                    <div className="h-2 bg-white/6 rounded w-4/5" />
-                    <div className="h-2 bg-white/6 rounded w-full" />
+
+                  {/* Polished Active App Screen Visual */}
+                  <div className="p-3 space-y-2.5 bg-gradient-to-b from-[#252744] to-[#1E1F36] h-full">
+                    {/* Header bar graphic */}
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded bg-terracotta/80 flex items-center justify-center text-[8px] text-white font-bold">S</div>
+                        <span className="text-[10px] font-semibold text-white/80">Accessible Workspace</span>
+                      </div>
+                      <span className="text-[9px] bg-sage/20 text-sage px-1.5 py-0.5 rounded">Active Sync</span>
+                    </div>
+
+                    {/* Content cards graphic */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 bg-white/5 rounded-lg border border-white/10">
+                        <div className="text-[9px] text-white/90 font-medium">ISL Sign Stream</div>
+                        <div className="text-[8px] text-sage mt-1">● Translating Live</div>
+                      </div>
+                      <div className="p-2 bg-white/5 rounded-lg border border-white/10">
+                        <div className="text-[9px] text-white/90 font-medium">Captions Log</div>
+                        <div className="text-[8px] text-white/50 mt-1">3 messages queued</div>
+                      </div>
+                    </div>
+
+                    {/* Paragraph lines graphic */}
+                    <div className="space-y-1.5 pt-1">
+                      <div className="h-1.5 bg-white/20 rounded w-5/6" />
+                      <div className="h-1.5 bg-white/10 rounded w-full" />
+                      <div className="h-1.5 bg-white/15 rounded w-4/6" />
+                    </div>
                   </div>
-                  {/* Floating Dost orb overlay */}
-                  <div className="absolute bottom-4 right-4">
+
+                  {/* Floating Avatar orb overlay */}
+                  <div className="absolute bottom-3 right-3">
                     <div className="relative">
                       <div className="absolute inset-0 rounded-full bg-terracotta/30 animate-ping" />
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-terracotta to-blush flex items-center justify-center relative z-10 shadow-lg">
-                        <svg width="18" height="18" viewBox="0 0 32 32">
-                          <circle cx="11" cy="13" r="3" fill="white" /><circle cx="21" cy="13" r="3" fill="white" />
-                          <path d="M 11 21 Q 16 26 21 21" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" />
-                        </svg>
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center relative z-10 shadow-lg border border-white/80 overflow-hidden">
+                        <img src="/assets/dost-mascot.png" alt="Avatar Mascot" className="w-full h-full object-contain p-0.5" />
                       </div>
                     </div>
                   </div>
+
                   {/* Attached label */}
-                  <div className="absolute top-10 right-4">
-                    <span className="bg-terracotta text-white text-xs px-2 py-1 rounded-full font-semibold">Dost attached</span>
+                  <div className="absolute top-10 right-3">
+                    <span className="bg-terracotta text-white text-[10px] px-2 py-0.5 rounded-full font-semibold shadow-md">Avatar attached</span>
                   </div>
                 </div>
               </div>
@@ -90,11 +113,11 @@ export default function DesktopAvatar() {
                 Desktop Companion
               </span>
               <h2 className="font-heading text-3xl sm:text-4xl font-bold text-ink mb-4">
-                Dost on your desktop
+                The Avatar on your desktop
               </h2>
               <p className="text-ink-secondary leading-relaxed">
                 The SaathiFy Desktop Companion brings ISL recognition to every app you use.
-                Start it once — Dost attaches to any window or webpage, giving you a communication bridge everywhere.
+                Start it once — Avatar attaches to any window or webpage, giving you a communication bridge everywhere.
               </p>
             </div>
 

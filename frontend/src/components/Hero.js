@@ -11,41 +11,24 @@ const chips = [
 function DostSVG({ reduced }) {
   return (
     <motion.div
-      animate={reduced ? {} : { scale: [1, 1.07, 1] }}
-      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-      className="relative"
+      animate={reduced ? {} : { y: [0, -10, 0], scale: [1, 1.04, 1] }}
+      transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+      className="relative w-64 h-64 sm:w-80 sm:h-80 flex items-center justify-center"
     >
-      {/* Pulse rings */}
+      {/* Soft pulse glow background */}
       {!reduced && (
         <>
-          <div className="absolute inset-0 rounded-full bg-blush/30 animate-ping" style={{ animationDuration: "2.5s" }} />
-          <div className="absolute inset-2 rounded-full bg-terracotta/20 animate-ping" style={{ animationDuration: "3s", animationDelay: "0.5s" }} />
+          <div className="absolute inset-4 rounded-full bg-blush/30 blur-xl animate-pulse" style={{ animationDuration: "3s" }} />
+          <div className="absolute inset-8 rounded-full bg-terracotta/20 blur-lg animate-pulse" style={{ animationDuration: "2.5s", animationDelay: "0.5s" }} />
         </>
       )}
-      <svg width="160" height="160" viewBox="0 0 160 160" className="relative z-10" aria-label="Dost AI companion character">
-        {/* Outer glow */}
-        <circle cx="80" cy="80" r="72" fill="rgba(244,172,183,0.15)" />
-        {/* Body */}
-        <circle cx="80" cy="80" r="62" fill="#F4ACB7" />
-        <circle cx="80" cy="80" r="56" fill="#E07A5F" />
-        {/* Face area */}
-        <ellipse cx="80" cy="88" rx="34" ry="28" fill="#F4EAE1" />
-        {/* Eyes */}
-        <circle cx="67" cy="76" r="7" fill="white" />
-        <circle cx="93" cy="76" r="7" fill="white" />
-        <circle cx="69" cy="77" r="4" fill="#2B2D42" />
-        <circle cx="95" cy="77" r="4" fill="#2B2D42" />
-        {/* Eye shine */}
-        <circle cx="70" cy="75" r="1.5" fill="white" />
-        <circle cx="96" cy="75" r="1.5" fill="white" />
-        {/* Smile */}
-        <path d="M 65 96 Q 80 108 95 96" stroke="#E07A5F" strokeWidth="3" fill="none" strokeLinecap="round" />
-        {/* Ears */}
-        <circle cx="20" cy="80" r="12" fill="#E07A5F" />
-        <circle cx="140" cy="80" r="12" fill="#E07A5F" />
-        <circle cx="20" cy="80" r="7" fill="#F4ACB7" />
-        <circle cx="140" cy="80" r="7" fill="#F4ACB7" />
-      </svg>
+      <div className="relative z-10 w-full h-full flex items-center justify-center">
+        <img
+          src="/assets/dost-mascot.png"
+          alt="Dost AI companion mascot"
+          className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(224,122,95,0.25)]"
+        />
+      </div>
     </motion.div>
   );
 }

@@ -22,11 +22,8 @@ export default function MeetDost({ onDostOpen }) {
               {/* Mock chat */}
               <div className="relative z-10 space-y-4">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-terracotta to-blush flex items-center justify-center">
-                    <svg width="20" height="20" viewBox="0 0 32 32">
-                      <circle cx="11" cy="13" r="3" fill="white" /><circle cx="21" cy="13" r="3" fill="white" />
-                      <path d="M 11 21 Q 16 26 21 21" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" />
-                    </svg>
+                  <div className="w-10 h-10 rounded-full bg-white border border-sand flex items-center justify-center overflow-hidden shadow-sm">
+                    <img src="/assets/dost-mascot.png" alt="Dost Mascot" className="w-full h-full object-contain p-0.5" />
                   </div>
                   <div>
                     <div className="font-heading font-semibold text-ink text-sm">Dost AI</div>

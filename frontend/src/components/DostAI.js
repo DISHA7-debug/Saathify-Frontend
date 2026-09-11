@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, Send, Mic, Hand, Sparkles } from "lucide-react";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
+const API = BACKEND_URL ? `${BACKEND_URL}/api` : "/api";
 
 const QUICK_PROMPTS = [
   "How do I sign 'Hello'?",
@@ -24,54 +24,134 @@ function DostOrb({ onClick, isOpen, reduced }) {
       onClick={onClick}
       data-testid="dost-ai-orb"
       aria-label={isOpen ? "Close Dost AI" : "Open Dost AI"}
-      whileHover={{ scale: 1.08 }}
-      whileTap={{ scale: 0.95 }}
-      className="relative w-16 h-16 rounded-full shadow-lift focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-terracotta/40"
+      animate={reduced ? {} : (isOpen ? { scale: 0.98 } : { y: [0, -6, 0], scale: [1, 1.05, 1] })}
+      transition={isOpen ? { duration: 0.2 } : { duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+      whileHover={{ scale: 1.12, rotate: isOpen ? 0 : [-3, 3, -3], transition: { type: "spring", stiffness: 350, damping: 15 } }}
+      whileTap={{ scale: 0.9, transition: { type: "spring", stiffness: 450, damping: 20 } }}
+      className={`relative w-16 h-16 rounded-full shadow-lift focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-terracotta/40 transition-all ${
+        isOpen ? "ring-4 ring-terracotta bg-terracotta-light" : ""
+      }`}
     >
       {!reduced && !isOpen && (
         <>
-          <span className="absolute inset-0 rounded-full bg-blush/50 animate-ping" style={{ animationDuration: "2.5s" }} />
-          <span className="absolute inset-2 rounded-full bg-terracotta/20 animate-ping" style={{ animationDuration: "3.2s" }} />
+          <span className="absolute inset-0 rounded-full bg-blush/50 animate-ping" style={{ animationDuration: "2.8s" }} />
+          <span className="absolute inset-1.5 rounded-full bg-terracotta/20 animate-ping" style={{ animationDuration: "3.5s" }} />
         </>
       )}
-      <motion.div
-        animate={reduced || isOpen ? {} : { scale: [1, 1.07, 1] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        className="relative z-10 w-16 h-16 rounded-full bg-gradient-to-br from-terracotta to-blush flex items-center justify-center"
-      >
+
+      {/* Active engagement dot when panel is open */}
+      {isOpen && (
+        <span className="absolute -top-1 -right-1 z-20 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white animate-pulse" />
+      )}
+
+      <div className="relative z-10 w-16 h-16 rounded-full bg-gradient-to-br from-terracotta to-blush p-1 flex items-center justify-center overflow-hidden shadow-soft">
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.div key="x" initial={{ rotate: -90 }} animate={{ rotate: 0 }} exit={{ rotate: 90 }}>
+            <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
               <X className="w-7 h-7 text-white" />
             </motion.div>
           ) : (
-            <motion.div key="face" initial={{ scale: 0 }} animate={{ scale: 1 }}>
-              <svg width="32" height="32" viewBox="0 0 32 32">
-                <circle cx="16" cy="16" r="14" fill="rgba(255,255,255,0.2)" />
-                <circle cx="11" cy="14" r="3" fill="white" />
-                <circle cx="21" cy="14" r="3" fill="white" />
-                <circle cx="12" cy="14.5" r="1.5" fill="#2B2D42" />
-                <circle cx="22" cy="14.5" r="1.5" fill="#2B2D42" />
-                <path d="M 11 22 Q 16 27 21 22" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" />
-              </svg>
+            <motion.div key="mascot" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="w-full h-full rounded-full flex items-center justify-center bg-transparent">
+              <img
+                src="/assets/dost-mascot.png"
+                alt="Dost Mascot"
+                className="w-full h-full object-contain p-0.5 filter drop-shadow-md"
+              />
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
     </motion.button>
   );
 }
 
-export default function DostAI({ isOpen, onClose }) {
+export default function DostAI({ isOpen, onClose, onOpen }) {
   const [tab, setTab] = useState("text");
   const [messages, setMessages] = useState([
     { id: "init", role: "assistant", content: "Namaste! I'm Dost, your SaathiFy companion. I can help you learn ISL, navigate features, or just chat. How can I help you today?" }
   ]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [voiceState, setVoiceState] = useState("idle"); // "idle" | "listening" | "transcribing"
   const messagesEndRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
   const reduced = useReducedMotion();
   const sessionId = getSessionId();
+
+  const startVoiceRecording = async () => {
+    try {
+      audioChunksRef.current = [];
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        setVoiceState("transcribing");
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        stream.getTracks().forEach((track) => track.stop());
+
+        try {
+          const formData = new FormData();
+          formData.append("file", audioBlob, "voice_input.webm");
+          formData.append("language_code", "en-IN");
+
+          const res = await fetch("/api/sarvam/stt", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) {
+            throw new Error("STT failed");
+          }
+
+          const data = await res.json();
+          if (data.transcript && data.transcript.trim()) {
+            setTab("text");
+            setVoiceState("idle");
+            sendMessage(data.transcript.trim());
+          } else {
+            throw new Error("Empty transcript");
+          }
+        } catch (err) {
+          setVoiceState("idle");
+          setMessages((p) => [
+            ...p,
+            {
+              id: Date.now(),
+              role: "assistant",
+              content: "I didn't quite catch that — want to try again, or type it instead?",
+            },
+          ]);
+        }
+      };
+
+      mediaRecorder.start();
+      setVoiceState("listening");
+    } catch (err) {
+      setVoiceState("idle");
+      setMessages((p) => [
+        ...p,
+        {
+          id: Date.now(),
+          role: "assistant",
+          content: "I didn't quite catch that — want to try again, or type it instead?",
+        },
+      ]);
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,12 +165,27 @@ export default function DostAI({ isOpen, onClose }) {
     setMessages((p) => [...p, userMsg, aMsg]);
     setInput("");
     setIsStreaming(true);
+
+    const timeoutId = setTimeout(() => {
+      setMessages((p) => p.map((m) => m.id === aId && m.streaming ? {
+        ...m,
+        content: m.content || "I didn't quite catch that — want to try again, or type it instead?",
+        streaming: false
+      } : m));
+      setIsStreaming(false);
+    }, 10000);
+
     try {
       const res = await fetch(`${API}/chat/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ session_id: sessionId, message: text }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Chat API error: ${res.status}`);
+      }
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
@@ -107,7 +202,8 @@ export default function DostAI({ isOpen, onClose }) {
               if (data.type === "text") {
                 setMessages((p) => p.map((m) => m.id === aId ? { ...m, content: m.content + data.content } : m));
               } else if (data.type === "done" || data.type === "error") {
-                const content = data.type === "error" ? data.content : undefined;
+                clearTimeout(timeoutId);
+                const content = data.type === "error" ? (data.content || "I didn't quite catch that — want to try again?") : undefined;
                 setMessages((p) => p.map((m) => m.id === aId ? { ...m, streaming: false, ...(content ? { content } : {}) } : m));
               }
             } catch {}
@@ -115,8 +211,10 @@ export default function DostAI({ isOpen, onClose }) {
         }
       }
     } catch {
-      setMessages((p) => p.map((m) => m.id === aId ? { ...m, content: "Connection error. Please try again.", streaming: false } : m));
+      clearTimeout(timeoutId);
+      setMessages((p) => p.map((m) => m.id === aId ? { ...m, content: "I didn't quite catch that — want to try again, or type it instead?", streaming: false } : m));
     } finally {
+      clearTimeout(timeoutId);
       setIsStreaming(false);
     }
   };
@@ -138,12 +236,8 @@ export default function DostAI({ isOpen, onClose }) {
             {/* Header */}
             <div className="bg-gradient-to-r from-terracotta to-[#D06346] px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg width="24" height="24" viewBox="0 0 32 32">
-                    <circle cx="11" cy="13" r="3" fill="white" /><circle cx="21" cy="13" r="3" fill="white" />
-                    <circle cx="12" cy="13.5" r="1.5" fill="#E07A5F" /><circle cx="22" cy="13.5" r="1.5" fill="#E07A5F" />
-                    <path d="M 11 21 Q 16 26 21 21" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" />
-                  </svg>
+                <div className="w-10 h-10 rounded-full bg-white border border-white/40 flex items-center justify-center overflow-hidden shadow-sm">
+                  <img src="/assets/dost-mascot.png" alt="Dost Mascot" className="w-full h-full object-contain p-0.5" />
                 </div>
                 <div>
                   <div className="font-heading font-bold text-white text-sm">Dost AI</div>
@@ -202,12 +296,50 @@ export default function DostAI({ isOpen, onClose }) {
                 </div>
               )}
               {tab === "voice" && (
-                <div className="flex flex-col items-center justify-center p-8 gap-6 text-center h-48">
-                  <div className="w-16 h-16 bg-sage-light rounded-full flex items-center justify-center"><Mic className="w-8 h-8 text-sage" /></div>
-                  <div><p className="font-heading font-semibold text-ink mb-1">Voice Assistant</p><p className="text-sm text-ink-muted">Hold Space to speak. Say "Hi Dost" to activate hands-free mode.</p></div>
-                  <button data-testid="dost-voice-btn" className="px-6 py-3 bg-sage text-white rounded-2xl font-semibold text-sm hover:bg-sage-hover transition-colors">
-                    Hold to Speak
-                  </button>
+                <div className="flex flex-col items-center justify-center p-8 gap-5 text-center min-h-[220px]">
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
+                    voiceState === "listening" ? "bg-red-100 text-red-600 ring-4 ring-red-400/40 animate-pulse" :
+                    voiceState === "transcribing" ? "bg-sage-light text-sage animate-spin" : "bg-sage-light text-sage"
+                  }`}>
+                    <Mic className="w-9 h-9" />
+                  </div>
+
+                  <div>
+                    <p className="font-heading font-semibold text-ink mb-1">
+                      {voiceState === "listening" ? "Listening..." : voiceState === "transcribing" ? "Transcribing..." : "Voice Assistant"}
+                    </p>
+                    <p className="text-xs text-ink-muted">
+                      {voiceState === "listening" ? "Speak into your mic, then click Done to send to Sarvam AI." :
+                       voiceState === "transcribing" ? "Converting speech to text with Sarvam Saaras v3..." :
+                       "Click below to start speaking directly to Dost AI."}
+                    </p>
+                  </div>
+
+                  {voiceState === "idle" && (
+                    <button
+                      data-testid="dost-voice-btn"
+                      onClick={startVoiceRecording}
+                      className="flex items-center gap-2 px-6 py-3 bg-sage text-white rounded-2xl font-semibold text-sm hover:bg-sage-hover transition-colors shadow-soft"
+                    >
+                      <Mic className="w-4 h-4" /> Start Speaking
+                    </button>
+                  )}
+
+                  {voiceState === "listening" && (
+                    <button
+                      data-testid="dost-voice-stop-btn"
+                      onClick={stopVoiceRecording}
+                      className="px-6 py-3 bg-red-500 text-white rounded-2xl font-semibold text-sm hover:bg-red-600 transition-colors shadow-soft animate-bounce"
+                    >
+                      Done Speaking
+                    </button>
+                  )}
+
+                  {voiceState === "transcribing" && (
+                    <div className="px-6 py-3 bg-sage-light text-sage font-semibold text-sm rounded-2xl flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 animate-spin" /> Transcribing audio...
+                    </div>
+                  )}
                 </div>
               )}
               {tab === "isl" && (
@@ -225,7 +357,7 @@ export default function DostAI({ isOpen, onClose }) {
       </AnimatePresence>
 
       {/* Orb */}
-      <DostOrb onClick={() => (isOpen ? onClose() : null) || (!isOpen ? (() => {})() : null)} isOpen={isOpen} reduced={reduced} />
+      <DostOrb onClick={isOpen ? onClose : onOpen} isOpen={isOpen} reduced={reduced} />
     </div>
   );
 }

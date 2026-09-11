@@ -13,7 +13,6 @@ import LearningBraille from "./components/LearningBraille";
 import ISLAvatarShowcase from "./components/ISLAvatarShowcase";
 import DesktopAvatar from "./components/DesktopAvatar";
 import AccessibilitySettingsPanel from "./components/AccessibilitySettingsPanel";
-import DesignSystemPreview from "./components/DesignSystemPreview";
 import Footer from "./components/Footer";
 
 import DostAI from "./components/DostAI";
@@ -94,12 +93,15 @@ function App() {
             onChange={setA11y}
             onDrawerOpen={() => setIsA11yOpen(true)}
           />
-          <DesignSystemPreview />
           <Footer />
         </main>
 
         {/* Floating Dost AI */}
-        <DostAI isOpen={isDostOpen} onClose={() => setIsDostOpen(false)} />
+        <DostAI
+          isOpen={isDostOpen}
+          onClose={() => setIsDostOpen(false)}
+          onOpen={() => setIsDostOpen(true)}
+        />
 
         {/* Accessibility Drawer */}
         <AccessibilityDrawer

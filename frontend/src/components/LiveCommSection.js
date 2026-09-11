@@ -26,11 +26,34 @@ export default function LiveCommSection({ onOpenClick }) {
 
             <div className="grid grid-cols-2 gap-0">
               {/* Camera view */}
-              <div className="bg-[#1A1A2E] aspect-square relative">
-                <div className="absolute inset-0 flex items-center justify-center text-white/20">
-                  <Users className="w-10 h-10 opacity-30" />
+              <div className="bg-gradient-to-b from-[#1A1A2E] to-[#111122] aspect-square relative overflow-hidden flex items-center justify-center">
+                {/* Live stream indicator */}
+                <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-medium text-white/80">LIVE</span>
                 </div>
-                <div className="absolute bottom-2 left-2 right-2 bg-white/10 rounded-xl p-2">
+
+                {/* Speaker avatar / Video feed mockup graphic */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-terracotta to-sage flex items-center justify-center p-0.5 shadow-lg">
+                      <div className="w-full h-full rounded-full bg-[#1F2036] flex items-center justify-center overflow-hidden">
+                        <Users className="w-8 h-8 text-sage-light" />
+                      </div>
+                    </div>
+                    {/* Audio wave pulse ring */}
+                    <span className="absolute -inset-1 rounded-full border border-sage/40 animate-ping opacity-75" style={{ animationDuration: "2s" }} />
+                  </div>
+                  {/* Subtle Audio Spectrum Bar Graphic */}
+                  <div className="flex items-center gap-1 h-3 mt-1">
+                    {[40, 80, 50, 100, 60, 90, 30].map((h, i) => (
+                      <span key={i} className="w-0.5 bg-sage/80 rounded-full animate-pulse" style={{ height: `${h}%`, animationDelay: `${i * 0.15}s` }} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Your Camera Label */}
+                <div className="absolute bottom-2 left-2 right-2 bg-black/40 backdrop-blur-md rounded-xl p-2 border border-white/10">
                   <p className="text-white text-xs font-semibold text-center">Your Camera</p>
                 </div>
               </div>
