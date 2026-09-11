@@ -1,0 +1,97 @@
+/* SaathiFy 2.0 — Global App Styles */
+
+.App {
+  min-height: 100vh;
+  background-color: #FAF6F0;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #E07A5F 0%, #81B29A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero gradient bg */
+.hero-gradient {
+  background: radial-gradient(ellipse at 70% 50%, rgba(244, 172, 183, 0.25) 0%, transparent 60%),
+              radial-gradient(ellipse at 20% 80%, rgba(129, 178, 154, 0.2) 0%, transparent 50%),
+              #FAF6F0;
+}
+
+/* Section divider */
+.section-divider {
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #E07A5F, #81B29A);
+  border-radius: 9999px;
+  margin: 0 auto 1.5rem;
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 250ms ease-out, box-shadow 250ms ease-out;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px -8px rgba(43, 45, 66, 0.15);
+}
+
+/* Status chips */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.status-ready { background: #E8F4EE; color: #4A8A6A; }
+.status-listening { background: #E8F4EE; color: #4A8A6A; }
+.status-processing { background: #FEF4DC; color: #A0732A; }
+.status-recognized { background: #FDEAE4; color: #B05537; }
+.status-speaking { background: #FDEAE4; color: #B05537; }
+.status-connected { background: #E8F4EE; color: #4A8A6A; }
+.status-off { background: #F4EAE1; color: #6C757D; }
+
+/* Avatar state ring */
+.avatar-ring {
+  border-radius: 9999px;
+  transition: box-shadow 300ms ease;
+}
+.avatar-ring-idle { box-shadow: 0 0 0 0 transparent; }
+.avatar-ring-listening { box-shadow: 0 0 0 8px rgba(129, 178, 154, 0.3); }
+.avatar-ring-processing { box-shadow: 0 0 0 8px rgba(242, 204, 143, 0.3); }
+.avatar-ring-signing { box-shadow: 0 0 0 8px rgba(224, 122, 95, 0.3); }
+
+/* Workspace header */
+.workspace-header {
+  background: #FFFFFF;
+  border-bottom: 1px solid #E8DFD8;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Mic bars animation */
+.mic-bar {
+  width: 4px;
+  border-radius: 9999px;
+  background: #81B29A;
+  animation: mic-pulse 0.8s ease-in-out infinite;
+}
+.mic-bar:nth-child(1) { animation-delay: 0s; height: 12px; }
+.mic-bar:nth-child(2) { animation-delay: 0.15s; height: 20px; }
+.mic-bar:nth-child(3) { animation-delay: 0.3s; height: 16px; }
+.mic-bar:nth-child(4) { animation-delay: 0.15s; height: 24px; }
+.mic-bar:nth-child(5) { animation-delay: 0s; height: 12px; }
+
+@keyframes mic-pulse {
+  0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
+  50% { transform: scaleY(1); opacity: 1; }
+}

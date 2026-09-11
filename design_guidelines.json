@@ -1,0 +1,148 @@
+{
+  "project_name": "SaathiFy 2.0",
+  "archetype": "ORGANIC & EARTHY / SOFT PASTEL ACCESSIBLE",
+  "theme": "Light mode only (Soft Warm Pastel)",
+  "tech_stack": {
+    "framework": "React (JavaScript - .js files)",
+    "styling": "Tailwind CSS + custom CSS variables",
+    "components": "shadcn/ui (radix primitives)",
+    "icons": "lucide-react",
+    "animation": "framer-motion (with prefers-reduced-motion support)"
+  },
+  "forbidden_elements": [
+    "No blue or indigo colors anywhere in the application (#0000FF, #3B82F6, #6366F1, #4F46E5, etc.)",
+    "No dark mode toggle",
+    "No generic Inter headers (Use Plus Jakarta Sans for headings)",
+    "No center-aligned dense text blocks",
+    "No transparent backgrounds without backdrop blur or solid backing in headers/modals",
+    "No missing data-testid attributes on interactive elements"
+  ],
+  "typography": {
+    "font_family_headings": "Plus Jakarta Sans, sans-serif",
+    "font_family_body": "Inter, sans-serif",
+    "font_family_mono": "JetBrains Mono, monospace",
+    "scale": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-[#2B2D42]",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl font-bold text-[#2B2D42]",
+      "h3": "text-xl sm:text-2xl font-semibold text-[#2B2D42]",
+      "h4": "text-lg sm:text-xl font-semibold text-[#2B2D42]",
+      "body": "text-base leading-relaxed text-[#3D405B]",
+      "caption": "text-sm text-[#5E6278]",
+      "pill_label": "text-xs uppercase tracking-widest font-semibold"
+    }
+  },
+  "colors": {
+    "background_main": "#FAF6F0",
+    "background_card": "#FFFFFF",
+    "background_secondary": "#F4EAE1",
+    "background_highlight": "#F7EDE2",
+    "primary_accent": "#E07A5F",
+    "primary_accent_hover": "#D06346",
+    "secondary_sage": "#81B29A",
+    "secondary_sage_hover": "#6CA188",
+    "soft_yellow": "#F2CC8F",
+    "soft_rose": "#F4ACB7",
+    "text_dark_primary": "#2B2D42",
+    "text_dark_secondary": "#3D405B",
+    "text_muted": "#6C757D",
+    "border_soft": "#E8DFD8",
+    "focus_ring": "#E07A5F",
+    "status_listening": "#81B29A",
+    "status_processing": "#F2CC8F",
+    "status_signing": "#E07A5F"
+  },
+  "spacing_and_radius": {
+    "border_radius_default": "12px (rounded-xl)",
+    "border_radius_card": "20px (rounded-2xl)",
+    "border_radius_pill": "9999px (rounded-full)",
+    "container_padding": "p-6 md:p-8 lg:p-12",
+    "section_gap": "gap-8 lg:gap-12"
+  },
+  "visual_enhancers": {
+    "shadows": "soft 2-layer ambient shadow: shadow-[0_4px_20px_-2px_rgba(224,122,95,0.08),0_2px_6px_-1px_rgba(43,45,66,0.04)]",
+    "focus_style": "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#E07A5F]/40 focus-visible:ring-offset-2",
+    "voice_pill": "Floating active indicator bar with audio visualizer bars, soft amber glow, and data-testid='voice-nav-indicator'",
+    "dost_ai_orb": "Bottom-right floating SVG avatar with gentle breathing scale animation, pulsing halo (#F4ACB7/#E07A5F), and expandable chat panel"
+  },
+  "motion": {
+    "duration_fast": "150ms",
+    "duration_normal": "250ms",
+    "duration_slow": "350ms",
+    "easing": "ease-out",
+    "accessibility_rule": "Respect prefers-reduced-motion via Framer Motion useReducedMotion() or CSS motion-reduce"
+  },
+  "image_urls": {
+    "community_deaf_communication": {
+      "url": "https://images.unsplash.com/photo-1655720358097-673f2a952cb7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHw0fHxkZWFmJTIwc2lnbiUyMGxhbmd1YWdlJTIwY29tbXVuaWNhdGlvbiUyMGNvbW11bml0eXxlbnwwfHx8fDE3ODkxMjkyNjh8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Close up of hands connecting, symbolizing ISL sign language and inclusive human communication",
+      "usage": "Hero section banner or ISL Recognition showcase card"
+    },
+    "inclusive_community_group": {
+      "url": "https://images.unsplash.com/photo-1765572144519-1dc1e6e07bc9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHw0fHxpbmRpYW4lMjBzdHVkZW50cyUyMGluY2x1c2l2ZSUyMGxlYXJuaW5nJTIwY29tbXVuaWNhdGlvbiUyMGNvbW11bml0eXxlbnwwfHx8fDE3ODkxMjkyNjh8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Group of smiling young adults together outdoors",
+      "usage": "Community & Accessibility impact section"
+    },
+    "inclusive_children_learning": {
+      "url": "https://images.unsplash.com/photo-1524069290683-0457abfe42c3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzV8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBzdHVkZW50cyUyMGluY2x1c2l2ZSUyMGxlYXJuaW5nJTIwY29tbXVuaWNhdGlvbiUyMGNvbW11bml0eXxlbnwwfHx8fDE3ODkxMjkyNjh8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Children raising hands in learning environment",
+      "usage": "Accessible Document Reader section background"
+    }
+  },
+  "key_components_and_workspaces": {
+    "sticky_navbar": {
+      "description": "Top sticky navigation with glassmorphism backdrop (bg-[#FAF6F0]/85 backdrop-blur-md), logo, key anchor links, Voice Nav button, and Accessibility Settings drawer toggle.",
+      "testid": "sticky-navbar"
+    },
+    "voice_navigation_indicator": {
+      "description": "Top-center pill indicator displaying active voice status, audio pulse animation, and last recognized command text.",
+      "testid": "voice-navigation-indicator"
+    },
+    "hero_section": {
+      "description": "High-impact introduction with Plus Jakarta Sans headline, clear CTA buttons for launching ISL Recognition Camera, Live Communication, and Document Reader.",
+      "testid": "hero-section"
+    },
+    "interaction_modes_section": {
+      "description": "Grid of 3 main accessibility modes (Text, Voice, ISL Sign) with interactive card previews.",
+      "testid": "interaction-modes-section"
+    },
+    "dost_ai_floating_bot": {
+      "description": "Bottom-right fixed friendly SVG character with floating pulse, chat window toggle, predefined quick prompt chips, and Gemini Flash integrated conversation history.",
+      "testid": "dost-ai-floating-bot"
+    },
+    "isl_camera_workspace_overlay": {
+      "description": "Full-screen workspace modal with camera feed simulation, landmark overlay, detected sign word stream, confidence gauge, and speech synthesizer toggle.",
+      "testid": "isl-camera-workspace-overlay"
+    },
+    "live_communication_workspace_overlay": {
+      "description": "Full-screen dual-pane workspace (Signer view on left, Speaker/Text view on right) for realtime two-way conversation with sign-to-speech engine.",
+      "testid": "live-communication-workspace-overlay"
+    },
+    "document_reader_workspace_overlay": {
+      "description": "Accessible document reader modal supporting Read mode, Listen (TTS player with rate/pitch controls), and Braille tactile simulation mode.",
+      "testid": "document-reader-workspace-overlay"
+    },
+    "isl_avatar_showcase": {
+      "description": "Interactive section featuring animated ISL 3D/Canvas avatar with state selector (Idle, Listening, Processing, Signing 'Namaste', 'Thank You', 'Help').",
+      "testid": "isl-avatar-showcase"
+    },
+    "desktop_avatar_concept": {
+      "description": "Showcase section for SaathiFy Desktop Companion app concept with feature breakdown and mock download modal.",
+      "testid": "desktop-avatar-concept"
+    },
+    "accessibility_settings_drawer": {
+      "description": "Right side sheet/drawer with toggles for Font Scaling, High Contrast Text, Motion Reduction, Sign Speed, and Screen Reader hints.",
+      "testid": "accessibility-settings-drawer"
+    },
+    "design_system_preview": {
+      "description": "Embedded interactive design system preview showcasing color palette swatches, typography scale, buttons, badges, and focus indicators.",
+      "testid": "design-system-preview"
+    }
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": {
+    "file_extension": "All React component files must be JavaScript (.js) files.",
+    "color_strictness": "ABSOLUTELY NO BLUE OR INDIGO (#0000FF, #3B82F6, #6366F1, etc.). Use warm soft pastels (#FAF6F0, #E07A5F, #81B29A, #F2CC8F, #F4ACB7).",
+    "accessibility_requirements": "All interactive elements (buttons, inputs, cards, dialog triggers) MUST have a data-testid attribute in kebab-case. WCAG AA contrast must be maintained. High visible focus rings on keyboard navigation.",
+    "state_management": "Use clean React state for overlays, mock ISL recognition streams, TTS playback states, avatar animation states, and Dost AI chat history.",
+    "toasts": "Use sonner toast notification system for feedback (e.g., 'Voice Navigation enabled', 'Document loaded', 'Camera connected')."
+  }
+}
