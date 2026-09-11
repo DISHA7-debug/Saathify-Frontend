@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Camera, Zap, CheckCircle, Edit2, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,10 +26,20 @@ export default function ISLCameraWorkspace({ onClose }) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
+  // Pending timers from startCamera/startDetection, cleared on unmount so a
+  // closed workspace never has a stray setState fire mid (or after) its
+  // AnimatePresence exit animation.
+  const timersRef = useRef([]);
+  useEffect(() => () => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+
   const startCamera = () => {
     setCameraOn(true);
     setStatus("initializing");
-    setTimeout(() => { setStatus("ready"); toast.success("Camera connected!"); }, 1500);
+    const t = setTimeout(() => { setStatus("ready"); toast.success("Camera connected!"); }, 1500);
+    timersRef.current.push(t);
   };
 
   const startDetection = () => {
@@ -39,7 +49,8 @@ export default function ISLCameraWorkspace({ onClose }) {
     const conf = 78 + Math.floor(Math.random() * 20);
     let c = 0;
     const interval = setInterval(() => { c += 5; setConfidence(Math.min(c, conf)); if (c >= conf) clearInterval(interval); }, 50);
-    setTimeout(() => { setRecognized(sign); setStatus("recognized"); clearInterval(interval); setConfidence(conf); }, 2200);
+    const t = setTimeout(() => { setRecognized(sign); setStatus("recognized"); clearInterval(interval); setConfidence(conf); }, 2200);
+    timersRef.current.push(interval, t);
   };
 
   const reset = () => { setStatus("ready"); setRecognized(null); setConfidence(0); };

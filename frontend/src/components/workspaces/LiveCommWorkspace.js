@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Users, Mic, MicOff, Plus, Trash2, Send, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -18,6 +18,11 @@ export default function LiveCommWorkspace({ onClose }) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
+  // Cancel a pending "speak to meeting" timer if the workspace closes first,
+  // so it can't fire on an unmounted (or exiting) component.
+  const speakTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(speakTimerRef.current), []);
+
   const connectMic = () => {
     setMicState("connected");
     toast.success("Virtual microphone connected");
@@ -33,7 +38,7 @@ export default function LiveCommWorkspace({ onClose }) {
     if (queue.length === 0) { toast.error("Queue is empty — add signs first"); return; }
     const sentence = queue.map((m) => m.text).join(". ");
     setMicState("speaking");
-    setTimeout(() => {
+    speakTimerRef.current = setTimeout(() => {
       setSentMessages((p) => [...p, { id: Date.now(), text: sentence, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }]);
       setQueue([]);
       setMicState("connected");
@@ -125,7 +130,7 @@ export default function LiveCommWorkspace({ onClose }) {
 
             {/* Sent messages */}
             {sentMessages.length > 0 && (
-              <div className="space-y-2 flex-1 overflow-y-auto">
+              <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">
                 <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest">Sent to Meeting</p>
                 {sentMessages.map((m) => (
                   <div key={m.id} className="bg-[#FAF6F0] rounded-xl px-4 py-3 text-sm text-ink border border-sand">

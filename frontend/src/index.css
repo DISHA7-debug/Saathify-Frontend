@@ -137,8 +137,8 @@ html { scroll-behavior: smooth; }
 
 /* Braille display */
 .braille-text {
-  font-size: 2rem;
-  letter-spacing: 0.3rem;
-  line-height: 2.5;
+  font-size: 1.5rem;
+  letter-spacing: 0.2rem;
+  line-height: 2;
   color: #2B2D42;
 }

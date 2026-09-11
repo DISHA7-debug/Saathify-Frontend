@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Hand, Settings, Menu, X, MessageCircle, Mic } from "lucide-react";
+import { Hand, Settings, Menu, X, Mic } from "lucide-react";
 
-export default function Navbar({ onA11yOpen, onDostOpen, onISLClick, onLiveClick, onDocClick }) {
+export default function Navbar({ onA11yOpen, onISLClick, onLiveClick, onDocClick }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const links = [
@@ -54,14 +54,6 @@ export default function Navbar({ onA11yOpen, onDostOpen, onISLClick, onLiveClick
             <Settings className="w-5 h-5" />
           </button>
           <button
-            onClick={onDostOpen}
-            data-testid="navbar-dost-btn"
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-terracotta text-white rounded-xl text-sm font-semibold hover:bg-terracotta-hover transition-colors shadow-soft"
-          >
-            <MessageCircle className="w-4 h-4" />
-            Try Dost AI
-          </button>
-          <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="md:hidden p-2 rounded-xl hover:bg-parchment text-ink-secondary"
             aria-label="Toggle menu"
@@ -94,13 +86,6 @@ export default function Navbar({ onA11yOpen, onDostOpen, onISLClick, onLiveClick
                   {l.label}
                 </a>
               ))}
-              <button
-                onClick={() => { onDostOpen(); setMenuOpen(false); }}
-                className="flex items-center gap-2 px-4 py-2 bg-terracotta text-white rounded-xl text-sm font-semibold mt-2"
-              >
-                <MessageCircle className="w-4 h-4" />
-                Try Dost AI
-              </button>
             </div>
           </motion.div>
         )}

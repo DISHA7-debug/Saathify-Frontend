@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AnimatePresence } from "framer-motion";
 import "./App.css";
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
@@ -111,10 +112,13 @@ function App() {
           onChange={setA11y}
         />
 
-        {/* Workspace Overlays */}
-        {workspace === "isl" && <ISLCameraWorkspace onClose={closeWorkspace} />}
-        {workspace === "live" && <LiveCommWorkspace onClose={closeWorkspace} />}
-        {workspace === "doc" && <DocumentReaderWorkspace onClose={closeWorkspace} />}
+        {/* Workspace Overlays — AnimatePresence lets each one's own exit
+            transition play instead of unmounting instantly on close. */}
+        <AnimatePresence>
+          {workspace === "isl" && <ISLCameraWorkspace key="isl" onClose={closeWorkspace} />}
+          {workspace === "live" && <LiveCommWorkspace key="live" onClose={closeWorkspace} />}
+          {workspace === "doc" && <DocumentReaderWorkspace key="doc" onClose={closeWorkspace} />}
+        </AnimatePresence>
 
         <Toaster position="top-right" richColors />
       </div>

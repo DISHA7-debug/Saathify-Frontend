@@ -74,13 +74,14 @@ export async function speakText({ text, rate = 1, onProgress, onEnd, onError }) 
       play: () => currentAudio && currentAudio.play(),
       stop: () => {
         if (currentAudio) {
+          currentAudio.onended = null;
+          currentAudio.onerror = null;
           currentAudio.pause();
           currentAudio.currentTime = 0;
         }
       },
-      set playbackRate(r) {
-        if (currentAudio) currentAudio.playbackRate = r;
-      }
+      isPaused: () => !currentAudio || currentAudio.paused,
+      setRate: (r) => { if (currentAudio) currentAudio.playbackRate = r; },
     };
   } catch (err) {
     if (onError) onError(err);
@@ -116,16 +117,30 @@ export default function DocumentReaderWorkspace({ onClose }) {
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  // Clean up SpeechSynthesis on unmount or doc change
-  useEffect(() => {
-    return () => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
-
   const audioRef = useRef(null);
+  const utteranceRef = useRef(null);
+  // Bumped every time we deliberately stop/replace speech, so a stale
+  // end/error event from a cancelled utterance can't clobber newer state
+  // (this is what made speed changes flash the error banner).
+  const speechGenRef = useRef(0);
+
+  // Stop whichever engine is currently speaking, and mark any in-flight
+  // events from it as stale so they're ignored when they arrive.
+  const stopAllSpeech = () => {
+    speechGenRef.current += 1;
+    if (audioRef.current) {
+      audioRef.current.stop();
+      audioRef.current = null;
+    }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    utteranceRef.current = null;
+  };
+
+  // Clean up whichever engine is speaking on unmount or doc change.
+  useEffect(() => {
+    return () => stopAllSpeech();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFileUpload = async (file) => {
     if (!file) return;
@@ -157,43 +172,108 @@ export default function DocumentReaderWorkspace({ onClose }) {
       setProgress(0);
       setActivePara(0);
       setPlaying(false);
-      if (audioRef.current && audioRef.current.pause) audioRef.current.pause();
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      stopAllSpeech();
     } catch (err) {
       setFileError(err.message || "We couldn't read that file — try a .txt, .pdf, or .docx");
     }
   };
 
+  // Browser speech fallback, used when the Sarvam proxy can't serve audio
+  // (no SARVAM_API_KEY configured, or the upstream call failed). Every modern
+  // browser ships a speech engine, so Listen still works without any API key.
+  // `rate` and `resumeFrom` (0-100) let a speed change or scrub restart
+  // mid-utterance instead of always reading from the top.
+  const speakWithBrowser = (fullText, rate, resumeFrom = 0) => {
+    if (!('speechSynthesis' in window)) return false;
+
+    const gen = ++speechGenRef.current;
+    window.speechSynthesis.cancel();
+
+    const startChar = Math.floor((resumeFrom / 100) * fullText.length);
+    const remaining = fullText.slice(startChar);
+    const utterance = new window.SpeechSynthesisUtterance(remaining);
+    utterance.rate = rate;
+    utterance.lang = "en-IN";
+
+    utterance.onboundary = (e) => {
+      if (speechGenRef.current !== gen) return; // stale utterance, ignore
+      const spoken = startChar + (e.charIndex || 0);
+      const p = fullText.length ? Math.min((spoken / fullText.length) * 100, 100) : 0;
+      setProgress(p);
+      setActivePara(Math.min(Math.floor((p / 100) * doc.paragraphs.length), doc.paragraphs.length - 1));
+    };
+    utterance.onend = () => {
+      if (speechGenRef.current !== gen) return; // superseded by a newer utterance
+      setPlaying(false);
+      setProgress(100);
+      utteranceRef.current = null;
+    };
+    utterance.onerror = () => {
+      if (speechGenRef.current !== gen) return; // this is the old utterance's
+      // cancel() firing error after we already started a replacement — ignore it
+      setPlaying(false);
+      utteranceRef.current = null;
+      setFileError("Couldn't generate audio right now — try again");
+    };
+
+    utteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+    return true;
+  };
+
   const handlePlayPause = async () => {
     setFileError("");
     if (playing) {
-      if (audioRef.current && audioRef.current.pause) {
+      if (audioRef.current) {
         audioRef.current.pause();
       } else if ('speechSynthesis' in window) {
         window.speechSynthesis.pause();
       }
       setPlaying(false);
     } else {
-      if (audioRef.current && audioRef.current.play && audioRef.current.paused) {
+      if (audioRef.current && !audioRef.current.isPaused()) {
+        // already playing somehow (shouldn't normally happen); nothing to do
+        setPlaying(true);
+      } else if (audioRef.current) {
         audioRef.current.play();
+        setPlaying(true);
+      } else if (utteranceRef.current && window.speechSynthesis.paused) {
+        // Native resume keeps the paused utterance's original rate, so if the
+        // speed was changed while paused, restart at the new rate instead of
+        // silently resuming at the stale one.
+        if (utteranceRef.current.rate !== speed) {
+          speakWithBrowser(doc.paragraphs.join(" "), speed, progress);
+        } else {
+          window.speechSynthesis.resume();
+        }
         setPlaying(true);
       } else {
         const fullText = doc.paragraphs.join(" ");
+        const gen = ++speechGenRef.current;
         setPlaying(true);
         const player = await speakText({
           text: fullText,
           rate: speed,
           onProgress: (p) => {
+            if (speechGenRef.current !== gen) return;
             setProgress(p);
             setActivePara(Math.min(Math.floor((p / 100) * doc.paragraphs.length), doc.paragraphs.length - 1));
           },
           onEnd: () => {
+            if (speechGenRef.current !== gen) return;
             setPlaying(false);
             setProgress(100);
+            audioRef.current = null;
           },
-          onError: (err) => {
-            setPlaying(false);
-            setFileError(err.message || "Couldn't generate audio right now — try again");
+          onError: () => {
+            if (speechGenRef.current !== gen) return;
+            // Sarvam unavailable — read it with the browser's own voice instead,
+            // continuing from wherever progress currently is.
+            audioRef.current = null;
+            if (!speakWithBrowser(fullText, speed, progress)) {
+              setPlaying(false);
+              setFileError("Couldn't generate audio right now — try again");
+            }
           },
         });
         if (player) {
@@ -205,8 +285,17 @@ export default function DocumentReaderWorkspace({ onClose }) {
 
   const handleSpeedChange = (newSpeed) => {
     setSpeed(newSpeed);
-    if (audioRef.current && audioRef.current.playbackRate) {
-      audioRef.current.playbackRate = newSpeed;
+    if (audioRef.current) {
+      audioRef.current.setRate(newSpeed);
+      return;
+    }
+    // Browser speech can't change rate on a live utterance — restart it at
+    // the new speed from the current progress. Only do that if we were
+    // actually playing; if paused, just remember the new rate (setSpeed
+    // above) and apply it whenever the user presses Play next — restarting
+    // here would silently resume playback out from under a paused reader.
+    if (utteranceRef.current && playing) {
+      speakWithBrowser(doc.paragraphs.join(" "), newSpeed, progress);
     }
   };
 
@@ -265,8 +354,8 @@ export default function DocumentReaderWorkspace({ onClose }) {
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <div className="px-6 pt-4 border-b border-sand">
               <TabsList className="bg-[#FAF6F0] p-1 rounded-xl">
                 <TabsTrigger value="read" data-testid="doc-tab-read"
@@ -285,7 +374,7 @@ export default function DocumentReaderWorkspace({ onClose }) {
             </div>
 
             {/* Read Tab */}
-            <TabsContent value="read" className="flex-1 overflow-y-auto p-6 focus:outline-none">
+            <TabsContent value="read" className="flex-1 min-h-0 overflow-y-auto p-6 focus:outline-none">
               <div className="max-w-2xl mx-auto">
                 <div className="flex items-center gap-2 mb-6">
                   <span className="text-xs text-ink-muted">Font size:</span>
@@ -300,13 +389,13 @@ export default function DocumentReaderWorkspace({ onClose }) {
                   {doc.title}
                 </h1>
                 {doc.paragraphs.map((p, i) => (
-                  <p key={i} className={`${fontSizeClass} text-ink-secondary leading-relaxed mb-5`}>{p}</p>
+                  <p key={i} className={`${fontSizeClass} text-ink-secondary leading-relaxed mb-5 break-words`}>{p}</p>
                 ))}
               </div>
             </TabsContent>
 
             {/* Listen Tab */}
-            <TabsContent value="listen" className="flex-1 overflow-y-auto p-6 focus:outline-none">
+            <TabsContent value="listen" className="flex-1 min-h-0 overflow-y-auto p-6 focus:outline-none">
               <div className="max-w-2xl mx-auto space-y-6">
                 {/* Player */}
                 <div className="bg-[#FAF6F0] rounded-2xl p-6 border border-sand">
@@ -339,13 +428,13 @@ export default function DocumentReaderWorkspace({ onClose }) {
 
                   {/* Controls */}
                   <div className="flex items-center justify-center gap-4">
-                    <button onClick={() => { setProgress(0); setActivePara(0); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); setPlaying(false); }} data-testid="listen-skip-back"
+                    <button onClick={() => { stopAllSpeech(); setProgress(0); setActivePara(0); setPlaying(false); }} data-testid="listen-skip-back"
                       className="p-2 text-ink-muted hover:text-ink"><SkipBack className="w-5 h-5" /></button>
                     <button onClick={handlePlayPause} data-testid="listen-play-btn"
                       className="w-12 h-12 bg-sage rounded-full flex items-center justify-center text-white hover:bg-sage-hover transition-colors shadow-soft">
                       {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                     </button>
-                    <button onClick={() => { setProgress(100); setPlaying(false); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); }} data-testid="listen-skip-fwd"
+                    <button onClick={() => { stopAllSpeech(); setProgress(100); setPlaying(false); }} data-testid="listen-skip-fwd"
                       className="p-2 text-ink-muted hover:text-ink"><SkipForward className="w-5 h-5" /></button>
                   </div>
                 </div>
@@ -367,46 +456,57 @@ export default function DocumentReaderWorkspace({ onClose }) {
             </TabsContent>
 
             {/* Braille Tab */}
-            <TabsContent value="braille" className="flex-1 overflow-y-auto p-6 focus:outline-none relative">
-              <div className="max-w-2xl mx-auto space-y-6 pb-20">
-                <div className="bg-butter-light rounded-2xl p-4 border border-butter/30">
-                  <p className="text-sm text-[#A0732A]">
-                    <strong>Braille Mode:</strong> Text converted to Grade 1 Unicode Braille. Ready for display output.
+            <TabsContent value="braille" className="flex-1 min-h-0 overflow-y-auto p-6 focus:outline-none relative">
+              <div className="max-w-2xl mx-auto space-y-5 pb-6">
+                <div className="flex items-start gap-3 bg-butter-light rounded-2xl p-4 border border-butter/30">
+                  <div className="w-8 h-8 rounded-xl bg-white/70 flex items-center justify-center text-[#A0732A] flex-shrink-0">
+                    <Type className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm text-[#A0732A] leading-relaxed">
+                    <strong className="font-semibold">Braille Mode</strong> — text converted to Grade&nbsp;1 Unicode Braille, ready for display output.
                   </p>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {doc.paragraphs.map((p, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                      transition={{ delay: i * 0.08 }} className="p-6 bg-[#FAF6F0] rounded-2xl border border-sand"
+                      transition={{ delay: i * 0.06 }} className="bg-white rounded-2xl border border-sand shadow-soft overflow-hidden"
                       data-testid={`braille-para-${i}`}
                     >
-                      <p className="text-xs font-semibold text-ink-muted uppercase tracking-widest mb-3">Paragraph {i + 1}</p>
-                      <p className="braille-text text-[#2B2D42] leading-loose" aria-label={p}>
-                        {toBraille(p)}
-                      </p>
-                      <p className="text-xs text-ink-muted mt-3 leading-relaxed">{p}</p>
+                      <div className="flex items-center gap-2 px-5 pt-4">
+                        <span className="w-6 h-6 rounded-full bg-terracotta-light text-terracotta text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+                          {i + 1}
+                        </span>
+                        <span className="text-xs font-semibold text-ink-muted uppercase tracking-widest">Paragraph</span>
+                      </div>
+                      <div className="mx-5 mt-3 mb-4 px-4 py-4 bg-[#FAF6F0] rounded-xl border border-sand/70 overflow-x-auto">
+                        <p className="braille-text whitespace-nowrap" aria-label={p}>
+                          {toBraille(p)}
+                        </p>
+                      </div>
+                      <p className="text-xs text-ink-muted leading-relaxed px-5 pb-4 break-words">{p}</p>
                     </motion.div>
                   ))}
                 </div>
               </div>
 
-              {/* Hardware Insert Status Indicator Signal */}
-              <div className="sticky bottom-4 left-0 right-0 flex justify-center z-20 pointer-events-none">
+              {/* Hardware Insert Status Indicator — pops in from the bottom-right corner */}
+              <div className="fixed bottom-6 right-6 z-20 pointer-events-none">
                 <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className="pointer-events-auto bg-[#1A1A2E] text-white px-5 py-3 rounded-2xl shadow-lift border border-sand flex items-center gap-3"
+                  key={activeTab === "braille" ? "braille-status-visible" : "braille-status-hidden"}
+                  initial={{ x: 120, y: 60, opacity: 0, scale: 0.85 }}
+                  animate={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 180, damping: 20, mass: 0.9, delay: 0.15 }}
+                  className="pointer-events-auto bg-[#1A1A2E] text-white pl-3 pr-4 py-3 rounded-2xl shadow-lift border border-white/10 flex items-center gap-3 max-w-[260px]"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-sage/20 flex items-center justify-center text-sage">
+                  <div className="w-8 h-8 rounded-xl bg-sage/20 flex items-center justify-center text-sage flex-shrink-0">
                     <Cpu className="w-4 h-4 animate-pulse" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-sage">
-                      <CheckCircle className="w-3.5 h-3.5" /> Braille Output Generated
+                      <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" /> Braille Output Generated
                     </div>
-                    <p className="text-xs text-white/80">Ready — insert Braille display device</p>
+                    <p className="text-xs text-white/70 truncate">Ready — insert Braille display device</p>
                   </div>
                 </motion.div>
               </div>
