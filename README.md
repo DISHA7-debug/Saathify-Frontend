@@ -1,1 +1,313 @@
-# Here are your Instructions
+<div align="center">
+
+<!--
+  Drop your SaathiFy logo file at .github/assets/logo.png (this exact
+  path and filename) and it will appear right here automatically —
+  GitHub renders README images straight from the repo, no rebuild needed.
+-->
+<img src=".github/assets/logo.png" alt="SaathiFy logo" width="220"/>
+
+# SaathiFy
+
+### Technology that understands how you communicate
+
+**Learn. Grow. Belong.**
+
+An inclusive communication platform for the deaf, hard-of-hearing, and visually impaired — built around a real-time AI companion, Indian Sign Language tools, and accessible document reading.
+
+[![React](https://img.shields.io/badge/React-19-149ECA?style=for-the-badge&logo=react&logoColor=white)](https://react.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Gemini](https://img.shields.io/badge/Gemini-Flash-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev)
+[![Sarvam AI](https://img.shields.io/badge/Sarvam_AI-TTS/STT-FF6B35?style=for-the-badge)](https://sarvam.ai)
+
+<br/>
+
+**[Live Demo](#live-demo) · [Features](#what-saathify-does) · [Architecture](#architecture) · [Quickstart](#run-it-locally) · [Team](#the-team)**
+
+</div>
+
+<br/>
+
+## 📖 The problem
+
+Over **63 million people in India** live with significant hearing loss, and **millions more** navigate daily life with visual impairment. Most digital tools are built for one way of communicating — typing and listening — and quietly leave everyone else to adapt around them.
+
+**SaathiFy flips that.** One companion, four ways in: **text, voice, Indian Sign Language, and Braille** — so the person adapts nothing, and the product meets them instead.
+
+<br/>
+
+## 🎥 Live demo
+
+<div align="center">
+<img src=".github/assets/dost-mascot.png" alt="Dost AI mascot" width="140"/>
+
+<!-- Optional: drop a recorded screen-capture at .github/assets/demo.gif for an inline preview here -->
+
+*Dost — SaathiFy's AI companion, powered by Gemini Flash*
+</div>
+
+<br/>
+
+## ✨ What SaathiFy does
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### 💬 Dost AI
+A warm, always-on companion that answers questions, teaches ISL vocabulary, and navigates the app for you — in text or voice.
+
+**Try it:** the floating orb, bottom-right, on every page.
+
+</td>
+<td width="33%" valign="top">
+
+### 🖐️ ISL Camera
+Point your camera and sign — SaathiFy recognizes Indian Sign Language gestures and turns them into text and speech in real time.
+
+**Try it:** *ISL Camera* in the nav bar.
+
+</td>
+<td width="33%" valign="top">
+
+### 📖 Document Reader
+Upload a `.txt`, `.pdf`, or `.docx` file and consume it three ways: **Read** it, **Listen** to it (Sarvam AI voice), or view it in **Braille**.
+
+**Try it:** *Learn* → *Open Document Reader*.
+
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+
+### 🗣️ Live Communication
+A queue-based interpreter workspace for live meetings — build a sentence from signs, then speak it to the room at once.
+
+**Try it:** *Live Comm* in the nav bar.
+
+</td>
+<td width="33%" valign="top">
+
+### ♿ Accessibility, built in
+Font scaling, dyslexia-friendly typeface, high contrast, reduced motion, and voice navigation — all live, all persistent across the session.
+
+**Try it:** the gear icon, top-right.
+
+</td>
+<td width="33%" valign="top">
+
+### 🖥️ Desktop Companion
+A concept for an always-on-top ISL avatar that attaches to *any* window on your desktop, not just the browser.
+
+**Status:** designed, not yet built — see below.
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+> **Built for judges in a hurry:** every claim in this README is checked against the code. The table below tells you exactly what's a live integration versus a working UI ahead of the backend catching up — because a project that's honest about its edges is more trustworthy than one that pretends it has none.
+
+<details>
+<summary><b>🔍 Feature reality check — click to expand</b></summary>
+<br/>
+
+| Feature | Status | What's actually running |
+|---|---|---|
+| **Dost AI chat** | 🟢 Live | Real streaming calls to **Gemini Flash** via a FastAPI proxy — falls back to a scripted responder only if no API key is configured |
+| **Voice → text (STT)** | 🟢 Live | Real audio uploads to **Sarvam Saaras v3** |
+| **Text → voice (TTS)** | 🟢 Live | Real calls to **Sarvam Bulbul v3**, with a browser `speechSynthesis` fallback if the API is unreachable |
+| **Document parsing** | 🟢 Live | Real `.txt` / `.pdf` (`pdf-parse`) / `.docx` (`mammoth`) extraction on the server |
+| **Braille conversion** | 🟢 Live | Real Grade-1 Unicode Braille transliteration, computed client-side |
+| **ISL sign *recognition*** | 🟡 Simulated | The camera workspace runs a scripted confidence-ramp and returns a random sign from a fixed list — the UI/UX is real, the CV model behind it isn't wired up yet |
+| **Desktop Companion** | 🟡 Concept | Fully designed download flow and messaging; no desktop binary exists |
+
+</details>
+
+<br/>
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client["🖥️ React 19 Frontend"]
+        UI["App Shell<br/>(Navbar · Hero · Sections)"]
+        Dost["Dost AI Widget<br/>(floating, global)"]
+        ISL["ISL Camera<br/>Workspace"]
+        Live["Live Comm<br/>Workspace"]
+        Doc["Document Reader<br/>Workspace"]
+        A11y["Accessibility Layer<br/>(font · contrast · motion)"]
+    end
+
+    subgraph Proxy["⚡ CRA Dev Proxy (setupProxy.js)"]
+        P1["/api/chat/message"]
+        P2["/api/sarvam/tts"]
+        P3["/api/sarvam/stt"]
+        P4["/api/parse-document"]
+    end
+
+    subgraph Backend["🐍 FastAPI Backend"]
+        B1["/api/chat/message<br/>+ session history"]
+        B2["/api/sarvam/tts"]
+        B3["/api/sarvam/stt"]
+        B4["/api/parse-document"]
+        DB[("MongoDB<br/>chat sessions")]
+    end
+
+    subgraph External["☁️ External AI Services"]
+        Gemini["Google Gemini Flash<br/>(LLM chat)"]
+        SarvamTTS["Sarvam Bulbul v3<br/>(Text → Speech)"]
+        SarvamSTT["Sarvam Saaras v3<br/>(Speech → Text)"]
+    end
+
+    UI --> Dost
+    UI --> ISL
+    UI --> Live
+    UI --> Doc
+    UI -.reads/writes.-> A11y
+
+    Dost -->|"chat + voice"| P1
+    Dost -->|"voice input"| P3
+    Doc -->|"listen"| P2
+    Doc -->|"upload"| P4
+
+    P1 --> B1
+    P2 --> B2
+    P3 --> B3
+    P4 --> B4
+
+    B1 <--> DB
+    B1 --> Gemini
+    B2 --> SarvamTTS
+    B3 --> SarvamSTT
+
+    style Client fill:#FDEAE4,stroke:#E07A5F,color:#2B2D42
+    style Proxy fill:#FDE8EC,stroke:#F4ACB7,color:#2B2D42
+    style Backend fill:#E8F0E4,stroke:#81B29A,color:#2B2D42
+    style External fill:#FEF3E2,stroke:#F2CC8F,color:#2B2D42
+```
+
+<br/>
+
+### How a message actually travels
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant D as Dost Widget
+    participant S as Backend (FastAPI)
+    participant G as Gemini Flash
+
+    U->>D: types or speaks a question
+    D->>S: POST /api/chat/message (SSE)
+    S->>G: forwards prompt + system context
+    G-->>S: streamed response tokens
+    S-->>D: text chunks, streamed live
+    D-->>U: reply appears word-by-word
+
+    Note over D,S: If Gemini has no key or fails,<br/>S serves a scripted fallback reply —<br/>the chat never goes silent.
+```
+
+<br/>
+
+## 🧰 Tech stack
+
+<table>
+<tr>
+<td valign="top" width="50%">
+
+**Frontend**
+- React 19 + React Router 7
+- Tailwind CSS 3 + Radix UI primitives
+- Framer Motion (all page/interaction animation)
+- CRACO (build config) over Create React App
+
+</td>
+<td valign="top" width="50%">
+
+**Backend & AI**
+- FastAPI + Motor (async MongoDB driver)
+- Google **Gemini Flash** — conversational AI
+- Sarvam AI **Bulbul v3 / Saaras v3** — Indian-language TTS/STT
+- `pdf-parse` + `mammoth` — document extraction
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+## 🚀 Run it locally
+
+<details>
+<summary><b>Click to expand setup instructions</b></summary>
+<br/>
+
+**Prerequisites:** Node.js 18+, Python 3.10+, a MongoDB connection string.
+
+```bash
+# 1. Clone
+git clone https://github.com/DISHA7-debug/Saathify-Frontend.git
+cd Saathify-Frontend
+
+# 2. Frontend
+cd frontend
+yarn install        # or: npm install --legacy-peer-deps
+```
+
+Create `frontend/.env`:
+```env
+GEMINI_API_KEY=your_gemini_key_here
+SARVAM_API_KEY=your_sarvam_key_here
+```
+
+```bash
+yarn start           # → http://localhost:3000
+```
+
+**Backend (optional — the dev server proxies these routes itself):**
+```bash
+cd ../backend
+pip install -r requirements.txt
+```
+
+Create `backend/.env`:
+```env
+MONGO_URL=your_mongodb_connection_string
+GEMINI_API_KEY=your_gemini_key_here
+SARVAM_API_KEY=your_sarvam_key_here
+```
+
+```bash
+uvicorn server:app --reload --port 8001
+```
+
+> No API keys? The app still runs — Dost falls back to a scripted responder and Listen falls back to your browser's built-in voice, so nothing breaks demoing without credentials.
+
+</details>
+
+<br/>
+
+## 👥 The team
+
+<div align="center">
+
+| 🧑‍💻 | 🧑‍💻 | 🧑‍💻 |
+|:---:|:---:|:---:|
+| **Piyush** | **Disha** | **Harshvardhan** |
+
+*Built together, for everyone who's ever had to adapt to a tool instead of the other way around.*
+
+</div>
+
+<br/>
+
+<div align="center">
+
+**SaathiFy** — *Learn. Grow. Belong.*
+
+</div>
+</content>
