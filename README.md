@@ -11,9 +11,14 @@
 
 ### Technology that understands how you communicate
 
-**Learn. Grow. Belong.**
+<img src="https://readme-typing-svg.demolab.com/?font=Poppins&size=20&duration=2800&pause=900&color=E07A5F&center=true&vCenter=true&width=560&lines=Learn.+Grow.+Belong.;One+companion.+Four+ways+in.;Text+%C2%B7+Voice+%C2%B7+ISL+%C2%B7+Braille;Built+so+nobody+has+to+adapt+alone." alt="SaathiFy tagline animation" />
 
 An inclusive communication platform for the deaf, hard-of-hearing, and visually impaired — built around a real-time AI companion, Indian Sign Language tools, and accessible document reading.
+
+<img src="https://img.shields.io/github/last-commit/DISHA7-debug/Saathify-Frontend?style=flat-square&color=E07A5F&label=last%20commit" alt="last commit"/>
+<img src="https://img.shields.io/github/languages/top/DISHA7-debug/Saathify-Frontend?style=flat-square&color=81B29A" alt="top language"/>
+<img src="https://img.shields.io/github/repo-size/DISHA7-debug/Saathify-Frontend?style=flat-square&color=F2CC8F" alt="repo size"/>
+<img src="https://img.shields.io/badge/PRs-welcome-F4ACB7?style=flat-square" alt="PRs welcome"/>
 
 [![React](https://img.shields.io/badge/React-19-149ECA?style=for-the-badge&logo=react&logoColor=white)](https://react.dev)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -24,7 +29,7 @@ An inclusive communication platform for the deaf, hard-of-hearing, and visually 
 
 <br/>
 
-**[Live Demo](#live-demo) · [Features](#what-saathify-does) · [Architecture](#architecture) · [Quickstart](#run-it-locally) · [Team](#the-team)**
+**[Live Demo](#live-demo) · [Features](#what-saathify-does) · [Architecture](#architecture) · [Roadmap](#roadmap) · [FAQ](#faq) · [Quickstart](#run-it-locally) · [Team](#the-team)**
 
 </div>
 
@@ -124,6 +129,27 @@ A concept for an always-on-top ISL avatar that attaches to *any* window on your 
 | **Braille conversion** | 🟢 Live | Real Grade-1 Unicode Braille transliteration, computed client-side |
 | **ISL sign *recognition*** | 🟡 Simulated | The camera workspace runs a scripted confidence-ramp and returns a random sign from a fixed list — the UI/UX is real, the CV model behind it isn't wired up yet |
 | **Desktop Companion** | 🟡 Concept | Fully designed download flow and messaging; no desktop binary exists |
+| **"Reduce Motion" toggle** | 🔴 Known bug | The switch flips its own UI state but isn't wired to the animations — `Hero` and `Dost AI` instead honor the OS-level `prefers-reduced-motion` setting directly. Tracked, not hidden. |
+
+</details>
+
+<br/>
+
+<details>
+<summary><b>🧪 Verify it yourself in 60 seconds — click to expand</b></summary>
+<br/>
+
+No need to trust the table above. Every element here has a stable `data-testid` in the DOM if you want to inspect it directly.
+
+| # | Do this | You should see |
+|:---:|---|---|
+| 1 | Click the floating orb, bottom-right | Chat panel opens, Dost greets you |
+| 2 | Type "How do I sign hello?" and send | A real streamed reply, word-by-word (open DevTools → Network → watch `/api/chat/message` stream) |
+| 3 | Switch to the **Voice** tab, speak a sentence | Real Sarvam STT transcribes it back as text |
+| 4 | Open **Document Reader** → **Listen** | Real Sarvam TTS audio plays (or your browser's own voice, if no Sarvam credits are configured) |
+| 5 | Switch to **Braille** tab | Grade-1 Unicode Braille renders live, with a corner notification that slides in |
+| 6 | Open **ISL Camera** → **Start Detection** | A confidence bar and a recognized sign appear — this one's the honest simulation, see the table above |
+| 7 | Open the gear icon → toggle **Font Size**, **High Contrast**, or **Dyslexia Font** | Applies instantly, site-wide |
 
 </details>
 
@@ -237,6 +263,81 @@ sequenceDiagram
 </td>
 </tr>
 </table>
+
+<br/>
+
+## 📂 Project structure
+
+<details>
+<summary><b>Click to expand the file tree</b></summary>
+<br/>
+
+```
+Saathify-Frontend/
+├── backend/
+│   ├── server.py              # FastAPI app — chat, TTS, STT, document parsing
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── public/assets/          # Static assets served at /assets/*
+│   └── src/
+│       ├── components/
+│       │   ├── DostAI.js               # The floating AI companion widget
+│       │   ├── Navbar.js               # Top nav + accessibility entry point
+│       │   ├── Hero.js                 # Landing hero section
+│       │   ├── AccessibilityDrawer.js  # Font/contrast/motion settings panel
+│       │   ├── ISLRecognitionSection.js
+│       │   ├── LiveCommSection.js
+│       │   ├── LearningBraille.js
+│       │   ├── ISLAvatarShowcase.js
+│       │   ├── DesktopAvatar.js        # "Coming soon" desktop concept
+│       │   ├── workspaces/
+│       │   │   ├── ISLCameraWorkspace.js       # Sign recognition UI
+│       │   │   ├── LiveCommWorkspace.js        # Queue-based interpreter
+│       │   │   └── DocumentReaderWorkspace.js  # Read / Listen / Braille
+│       │   └── ui/                     # Radix-based design system primitives
+│       ├── setupProxy.js       # Dev-server proxy → backend AI routes
+│       └── App.js              # Root shell, routing, global a11y state
+│
+└── README.md                   # You are here
+```
+
+</details>
+
+<br/>
+
+## 🗺️ Roadmap
+
+- [x] Gemini-powered Dost AI chat with streaming responses
+- [x] Sarvam AI text-to-speech and speech-to-text
+- [x] Document Reader — Read / Listen / Braille, from `.txt` / `.pdf` / `.docx`
+- [x] Full accessibility settings (font scale, contrast, dyslexia font, voice nav)
+- [ ] Wire the "Reduce Motion" toggle to the app's actual animations *(see the reality-check table above)*
+- [ ] Replace ISL Camera's simulated recognition with a real gesture-classification model
+- [ ] Ship the Desktop Companion as an installable app
+- [ ] Multi-language support beyond English/Hindi for Dost AI
+
+<br/>
+
+## ❓ FAQ
+
+<details>
+<summary><b>Does this actually need API keys to demo?</b></summary>
+<br/>
+No. Every AI-backed feature has a graceful fallback — Dost AI serves a scripted (but genuinely useful) response, and Document Reader's Listen tab falls back to your browser's own text-to-speech engine. Add <code>GEMINI_API_KEY</code> and <code>SARVAM_API_KEY</code> to unlock the real AI voices and reasoning.
+</details>
+
+<details>
+<summary><b>Why is ISL sign recognition simulated?</b></summary>
+<br/>
+Because we'd rather ship an honest, well-designed UI around a real feature that's still in progress than fake a camera-based ML model in a demo. The interaction flow, confidence UI, and suggestion system are all real and ready for a model to be dropped in behind them.
+</details>
+
+<details>
+<summary><b>Is this accessible for screen readers, not just visually?</b></summary>
+<br/>
+The UI uses semantic HTML, ARIA roles on interactive elements (dialogs, switches, buttons), and keyboard shortcuts (<kbd>Esc</kbd> to close any overlay). It hasn't been audited with a screen reader end-to-end — that's an open item, not a claim we're making here.
+</details>
 
 <br/>
 
