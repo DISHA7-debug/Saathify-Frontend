@@ -29,6 +29,14 @@ An inclusive communication platform for the deaf, hard-of-hearing, and visually 
 
 <br/>
 
+> **📦 This is the Frontend Repository**
+>
+> The backend (FastAPI server, AI integrations, document parsing) is hosted separately.
+>
+> [![Backend Repo](https://img.shields.io/badge/🔗_View_Backend_Repository-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/HarshvardhanKh/saathify-continued)
+
+<br/>
+
 **[Live Demo](#live-demo) · [Features](#what-saathify-does) · [Architecture](#architecture) · [Roadmap](#roadmap) · [FAQ](#faq) · [Quickstart](#run-it-locally) · [Team](#the-team)**
 
 </div>
