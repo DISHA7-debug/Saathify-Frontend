@@ -1,0 +1,31 @@
+<svg width="640" height="160" viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SaathiFy logo">
+  <defs>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E07A5F"/>
+      <stop offset="55%" stop-color="#F2CC8F"/>
+      <stop offset="100%" stop-color="#81B29A"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E07A5F"/>
+      <stop offset="100%" stop-color="#B4654E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- mark: four arcs meeting in the middle, representing text / voice / ISL / braille converging -->
+  <g transform="translate(80,80)">
+    <circle cx="0" cy="0" r="52" fill="none" stroke="url(#ringGrad)" stroke-width="10" stroke-dasharray="58 20 58 20 58 20 58 20" stroke-linecap="round">
+      <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="14s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="24" fill="#2B2D42"/>
+    <circle cx="-8" cy="-4" r="4.5" fill="#F4ACB7">
+      <animate attributeName="opacity" values="1;0.4;1" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="8" cy="-4" r="4.5" fill="#F4ACB7">
+      <animate attributeName="opacity" values="1;0.4;1" dur="2.6s" begin="0.4s" repeatCount="indefinite"/>
+    </circle>
+    <path d="M -7 8 Q 0 14 7 8" stroke="#F4ACB7" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <text x="150" y="98" font-family="Poppins, 'Segoe UI', Verdana, sans-serif" font-size="58" font-weight="700" fill="url(#textGrad)">Saathi<tspan fill="#81B29A">Fy</tspan></text>
+  <text x="152" y="124" font-family="Poppins, 'Segoe UI', Verdana, sans-serif" font-size="16" letter-spacing="2" fill="#6B6F8C">TEXT &#183; VOICE &#183; ISL &#183; BRAILLE</text>
+</svg>
